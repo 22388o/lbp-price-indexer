@@ -2,9 +2,7 @@ use crate::models::{Response, ReverseSimulationResponse};
 use actix_web::rt::{spawn, time};
 use actix_web::{App, HttpServer};
 use anyhow::Result;
-use cosmwasm_std::ContractResult;
-use serde_json::{json, to_string, Map};
-use std::any::Any;
+use serde_json::{json, to_string};
 use std::time::Duration;
 use terra_rust_api::Terra;
 
@@ -52,7 +50,7 @@ async fn query_reverse_simulation(terra: &Terra, block_time: u64) {
                         "contract_addr": token_addr
                     }
                 },
-                "amount": "1"
+                "amount": "1000000"
             },
             "block_time": block_time
         }
