@@ -2,9 +2,10 @@ use crate::models::{Response, ReverseSimulationResponse};
 use actix_web::rt::{spawn, time};
 use actix_web::{App, HttpServer};
 use anyhow::Result;
-use cosmwasm_std::Uint128;
+use mysql::prelude::Queryable;
+use mysql::PooledConn;
+use mysql::{params, OptsBuilder, Pool};
 use serde_json::{json, to_string};
-use std::ops::Div;
 use std::time::Duration;
 use terra_rust_api::Terra;
 
@@ -12,6 +13,14 @@ pub mod models;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    // let dburl = "mysql://root:password@localhost:3307/indexer";
+    let mysql_pool = Pool::new(
+        OptsBuilder::new()
+            .user(Some("root"))
+            .db_name(Some("indexer")),
+    )
+    .unwrap();
+
     let terra = Terra::lcd_client_no_tx("http://143.244.190.1:3060", "localterra");
     spawn(async move {
         let mut interval = time::interval(Duration::from_secs(3));
@@ -24,7 +33,8 @@ async fn main() -> std::io::Result<()> {
                     if block_height > last_height {
                         last_height = block_height.clone();
                         let block_time = block_result.block.header.time.timestamp().unsigned_abs();
-                        query_reverse_simulation(&terra, block_time).await;
+                        let conn = mysql_pool.get_conn().unwrap();
+                        query_reverse_simulation(&terra, block_time, conn).await;
                     }
                 }
                 Err(_) => {
@@ -42,7 +52,7 @@ async fn main() -> std::io::Result<()> {
         .await
 }
 
-async fn query_reverse_simulation(terra: &Terra, block_time: u64) {
+async fn query_reverse_simulation(terra: &Terra, block_time: u64, mut mysql_conn: PooledConn) {
     let pool_addr = "terra106h80nqa9k7xclnzxssqjuhjk9lh683p8dmvxw";
     let token_addr = "terra1ftscx7hy4qeqrrc6wx7myk2ftwf6z3n766v9fv";
     let query_msg = json!({
@@ -66,11 +76,24 @@ async fn query_reverse_simulation(terra: &Terra, block_time: u64) {
     match result {
         Ok(response) => {
             println!("Query Success.");
+            let result = &response.result;
+            let mysql_result = mysql_conn.exec_drop(
+                r"INSERT INTO reverse_simulation 
+                (height, offer_amount, spread_amount, commission_amount, ask_weight, offer_weight) 
+                VALUES (:height, :offer_amount, :spread_amount, :commission_amount, :ask_weight, :offer_weight)",
+                params! {
+                    "height" => &response.height,
+                    "offer_amount" => &result.offer_amount.to_string(),
+                    "spread_amount" => &result.spread_amount.to_string(),
+                    "commission_amount" => &result.commission_amount.to_string(),
+                    "ask_weight" => &result.ask_weight,
+                    "offer_weight" => &result.offer_weight
+                }
+            );
+            println!("Insert result: {:?}", mysql_result);
         }
         Err(e) => {
             println!("Query Error: {:?}", e);
         }
     }
 }
-
-async fn save(response: ReverseSimulationResponse) {}
