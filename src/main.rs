@@ -98,3 +98,6 @@ async fn query_reverse_simulation(terra: &Terra, block_time: u64, mut mysql_conn
         }
     }
 }
+
+//Query for the API:
+//SELECT height, offer_amount, (`block_time` - `block_time`%60) * 1000 time FROM `reverse_simulation` GROUP BY time ORDER BY time DESC;
