@@ -32,7 +32,7 @@ async fn main() -> std::io::Result<()> {
                     let block_height = block_result.block.header.height;
                     if block_height > last_height {
                         last_height = block_height.clone();
-                        let block_time = block_result.block.header.time.timestamp().unsigned_abs();
+                        let block_time = block_result.block.header.time.timestamp() as u64;
                         let conn = mysql_pool.get_conn().unwrap();
                         query_reverse_simulation(&terra, block_time, conn).await;
                     }
@@ -65,7 +65,7 @@ async fn query_reverse_simulation(terra: &Terra, block_time: u64, mut mysql_conn
                 },
                 "amount": "1000000"
             },
-            "block_time": block_time
+            "block_time": block_time.clone()
         }
     });
 
@@ -79,15 +79,16 @@ async fn query_reverse_simulation(terra: &Terra, block_time: u64, mut mysql_conn
             let result = &response.result;
             let mysql_result = mysql_conn.exec_drop(
                 r"INSERT INTO reverse_simulation 
-                (height, offer_amount, spread_amount, commission_amount, ask_weight, offer_weight) 
-                VALUES (:height, :offer_amount, :spread_amount, :commission_amount, :ask_weight, :offer_weight)",
+                (height, offer_amount, spread_amount, commission_amount, ask_weight, offer_weight, block_time) 
+                VALUES (:height, :offer_amount, :spread_amount, :commission_amount, :ask_weight, :offer_weight, :block_time)",
                 params! {
                     "height" => &response.height,
                     "offer_amount" => &result.offer_amount.to_string(),
                     "spread_amount" => &result.spread_amount.to_string(),
                     "commission_amount" => &result.commission_amount.to_string(),
                     "ask_weight" => &result.ask_weight,
-                    "offer_weight" => &result.offer_weight
+                    "offer_weight" => &result.offer_weight,
+                    "block_time" => block_time.clone()
                 }
             );
             println!("Insert result: {:?}", mysql_result);
