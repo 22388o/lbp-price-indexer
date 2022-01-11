@@ -13,7 +13,6 @@ pub mod models;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    // let dburl = "mysql://root:password@localhost:3307/indexer";
     let mysql_pool = Pool::new(
         OptsBuilder::new()
             .user(Some("root"))
