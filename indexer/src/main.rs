@@ -8,19 +8,32 @@ use mysql::{params, OptsBuilder, Pool};
 use serde_json::{json, to_string};
 use std::time::Duration;
 use terra_rust_api::Terra;
+use std::env::{var};
 
 pub mod models;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    let pass = match var("DBPASS") {
+        Ok(pass) => {
+            Some(pass)
+        }
+        Err(_) => {
+            None
+        }
+    };
     let mysql_pool = Pool::new(
         OptsBuilder::new()
-            .user(Some("root"))
-            .db_name(Some("indexer")),
+            .user(Some(var("DBUSER").unwrap_or("root".to_string())))
+            .pass(pass)
+            .db_name(Some(var("DBNAME").unwrap_or("indexer".to_string()).to_string())),
     )
     .unwrap();
 
-    let terra = Terra::lcd_client_no_tx("http://143.244.190.1:3060", "localterra");
+    let lcd_url = var("LCDURL").unwrap();
+    let chain_id = var("CHAINID").unwrap();
+
+    let terra = Terra::lcd_client_no_tx(lcd_url.as_str(), chain_id.as_str());
     spawn(async move {
         let mut interval = time::interval(Duration::from_secs(3));
         let mut last_height = 0;
@@ -52,14 +65,14 @@ async fn main() -> std::io::Result<()> {
 }
 
 async fn query_reverse_simulation(terra: &Terra, block_time: u64, mut mysql_conn: PooledConn) {
-    let pool_addr = "terra106h80nqa9k7xclnzxssqjuhjk9lh683p8dmvxw";
-    let token_addr = "terra1ftscx7hy4qeqrrc6wx7myk2ftwf6z3n766v9fv";
+    let pool_addr = var("POOL").unwrap();
+    let token_addr = var("TOKEN").unwrap();
     let query_msg = json!({
         "reverse_simulation" : {
             "ask_asset": {
                 "info": {
                     "token": {
-                        "contract_addr": token_addr
+                        "contract_addr": token_addr.clone()
                     }
                 },
                 "amount": "1000000"
@@ -70,7 +83,7 @@ async fn query_reverse_simulation(terra: &Terra, block_time: u64, mut mysql_conn
 
     let json_query = to_string(&query_msg).unwrap();
     let result: Result<Response<ReverseSimulationResponse>> =
-        terra.wasm().query(pool_addr, json_query.as_str()).await;
+        terra.wasm().query(pool_addr.as_str(), json_query.as_str()).await;
 
     match result {
         Ok(response) => {
