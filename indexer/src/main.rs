@@ -97,7 +97,9 @@ async fn query_reverse_simulation(terra: &Terra, block_time: u64, mut mysql_conn
         }
     });
 
-    if pair_info_query_result.result.start_time >= block_time {
+    let start_time = pair_info_query_result.result.start_time;
+
+    if block_time >= start_time {
         let json_query = to_string(&reverse_simulation_query).unwrap();
         let result: AnyhowResult<Response<ReverseSimulationResponse>> = terra
             .wasm()
@@ -120,14 +122,17 @@ async fn query_reverse_simulation(terra: &Terra, block_time: u64, mut mysql_conn
                     "ask_weight" => &result.ask_weight,
                     "offer_weight" => &result.offer_weight,
                     "block_time" => block_time.clone()
-                },
-                );
+                });
                 println!("Insert result: {:?}", mysql_result);
             }
             Err(e) => {
                 println!("Query Error: {:?}", e);
             }
         }
+    } else {
+        println!("Waiting for LBP to start");
+        println!("pair_info start time: {}", start_time);
+        println!("block time: {}", block_time);
     }
 }
 
