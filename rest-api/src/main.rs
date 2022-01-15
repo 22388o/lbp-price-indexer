@@ -27,7 +27,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(mysql_pool.clone()))
             .route("/", web::get().to(query))
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("0.0.0.0", 80))?
     .run()
     .await
 }
@@ -35,11 +35,13 @@ async fn main() -> std::io::Result<()> {
 async fn query(_req: HttpRequest, data: web::Data<Pool>) -> impl Responder {
     let conn = &mut data.get_conn().unwrap();
     let result: mysql::Result<Vec<QueryResult>> = conn.query_map(
-        "SELECT height, offer_amount, (`block_time` - `block_time`%60) * 1000 time FROM \
-    `reverse_simulation` GROUP BY time ORDER BY time DESC;",
-        |(height, offer_amount, time)| QueryResult {
-            height,
+        "(SELECT CAST(AVG(offer_amount) AS INT) as offer_amount, height, (`block_time` - `block_time`%60) * 1000 time FROM `reverse_simulation` GROUP BY time)
+                UNION
+                (SELECT CAST(offer_amount AS INT), height,  `block_time` * 1000 time FROM `reverse_simulation` GROUP BY time ORDER BY block_time DESC LIMIT 1)
+                ORDER BY time ASC;",
+        |(offer_amount, height, time)| QueryResult {
             offer_amount,
+            height,
             time,
         },
     );
