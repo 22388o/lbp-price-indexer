@@ -1,0 +1,1 @@
+DBUSER=admin DBNAME=indexer DBPASS="kogwya*OR&V8N84uk*pgXl" LCDURL=http://10.124.0.2:3060 CHAINID=localterra POOL=terra15te98vtgw0r8jjyau8vx3htd67z0724x6eh3nt TOKEN=terra16x5cd6gapu4n4mzuhl5t692ehrt3rjk7m5my7q cargo run
