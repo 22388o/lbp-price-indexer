@@ -1,3 +1,4 @@
+use actix_cors::Cors;
 use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use mysql::prelude::Queryable;
 use mysql::{OptsBuilder, Pool};
@@ -22,8 +23,11 @@ async fn main() -> std::io::Result<()> {
             )),
     )
     .unwrap();
+
     HttpServer::new(move || {
+        let cors = Cors::permissive().allowed_methods(vec!["GET"]);
         App::new()
+            .wrap(cors)
             .app_data(web::Data::new(mysql_pool.clone()))
             .route("/", web::get().to(query))
     })
