@@ -1,7 +1,10 @@
+extern crate dotenv;
+
 use crate::models::{PairInfo, Response, ReverseSimulationResponse};
 use actix_web::rt::{spawn, time};
 use actix_web::{App, HttpServer};
 use anyhow::Result as AnyhowResult;
+use dotenv::dotenv;
 use mysql::prelude::Queryable;
 use mysql::PooledConn;
 use mysql::{params, OptsBuilder, Pool};
@@ -14,6 +17,7 @@ pub mod models;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    dotenv().ok();
     let pass = match var("DBPASS") {
         Ok(pass) => Some(pass),
         Err(_) => None,
