@@ -1,0 +1,16 @@
+[Unit]
+Description=Indexer
+After=network.target
+
+[Service]
+ExecStart=/root/.cargo/bin/cargo run --release
+WorkingDirectory=/root/lbp-price-indexer/indexer
+Restart=always
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=INDEXER
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target
