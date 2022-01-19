@@ -1,5 +1,8 @@
+extern crate dotenv;
+
 use actix_cors::Cors;
 use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer, Responder};
+use dotenv::dotenv;
 use mysql::prelude::Queryable;
 use mysql::{OptsBuilder, Pool};
 use serde::{Deserialize, Serialize};
@@ -8,6 +11,7 @@ use std::time::Duration;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    dotenv().ok();
     let pass = match var("DBPASS") {
         Ok(pass) => Some(pass),
         Err(_) => None,
